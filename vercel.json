@@ -1,0 +1,12 @@
+{
+  "routes": [
+    {
+      "src": "/api/v1/(.*)",
+      "dest": "https://backendtaskflow.onrender.com/api/v1/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}
