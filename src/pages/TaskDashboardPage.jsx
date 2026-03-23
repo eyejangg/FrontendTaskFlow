@@ -3,6 +3,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useTaskStore } from "../store/useTaskStore";
 import { Plus, Loader2, Trash2, Edit2, Calendar, Clock, CheckCircle, Circle, Eye, CheckSquare, X, ListTodo, AlignLeft, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import confetti from "canvas-confetti";
 
 const TaskDashboardPage = () => {
   const { authUser } = useAuthStore();
@@ -72,15 +73,24 @@ const TaskDashboardPage = () => {
 
   const toggleStatus = (task) => {
     const newStatus = task.status === "completed" ? "todo" : "completed";
+    if (newStatus === "completed") {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#0ea5e9', '#6366f1', '#10b981', '#f59e0b', '#ec4899'],
+        zIndex: 200,
+      });
+    }
     updateTask(task._id, { status: newStatus });
   };
 
   const getPriorityInfo = (priority) => {
     switch (priority) {
-      case "high": return { label: "สูง", style: "text-rose-600 bg-rose-100 border-rose-200" };
-      case "medium": return { label: "ปานกลาง", style: "text-amber-600 bg-amber-100 border-amber-200" };
-      case "low": return { label: "ต่ำ", style: "text-emerald-600 bg-emerald-100 border-emerald-200" };
-      default: return { label: priority, style: "text-slate-600 bg-slate-100" };
+      case "high": return { label: "สูง", style: "text-rose-600 bg-rose-100 border-rose-200", borderClass: "border-l-rose-500" };
+      case "medium": return { label: "ปานกลาง", style: "text-amber-600 bg-amber-100 border-amber-200", borderClass: "border-l-amber-400" };
+      case "low": return { label: "ต่ำ", style: "text-emerald-600 bg-emerald-100 border-emerald-200", borderClass: "border-l-emerald-400" };
+      default: return { label: priority, style: "text-slate-600 bg-slate-100", borderClass: "border-l-slate-300" };
     }
   };
   
@@ -132,12 +142,7 @@ const TaskDashboardPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {tasks.map((task) => (
-            <div key={task._id} className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 hover:border-primary-300 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col relative overflow-hidden">
-              
-              {/* Top Accent line if high priority */}
-              {task.priority === 'high' && !task.status.includes('completed') && (
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-400 to-red-500 z-10" />
-              )}
+            <div key={task._id} className={`bg-white rounded-3xl shadow-sm border border-slate-200 border-l-[6px] ${getPriorityInfo(task.priority).borderClass} p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col relative overflow-hidden`}>
               
               <div className="flex justify-between items-start mb-5 relative z-20">
                 <button 
@@ -152,8 +157,11 @@ const TaskDashboardPage = () => {
                 </button>
                 <div className="flex-1 ml-4 overflow-hidden">
                   <Link to={`/tasks/${task._id}`}>
-                    <h3 className={`font-bold text-lg leading-tight transition-colors truncate block ${task.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-800 hover:text-primary-600'}`} title={task.title}>
-                      {task.title}
+                    <h3 className={`font-bold text-lg leading-tight transition-all duration-500 block relative ${task.status === 'completed' ? 'text-slate-400' : 'text-slate-800 hover:text-primary-600'}`} title={task.title}>
+                      <span className="relative inline-block w-full truncate">
+                        {task.title}
+                        <span className={`absolute left-0 top-1/2 h-[2px] bg-slate-400 transition-all duration-300 ease-out origin-left ${task.status === 'completed' ? 'w-full scale-x-100' : 'w-full scale-x-0'}`}></span>
+                      </span>
                     </h3>
                   </Link>
                   <div className="flex flex-wrap gap-2 mt-3">
