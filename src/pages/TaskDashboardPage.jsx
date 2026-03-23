@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useTaskStore } from "../store/useTaskStore";
-import { Plus, Loader2, Trash2, Edit2, Calendar, Clock, CheckCircle, Circle, Eye, CheckSquare, X, ListTodo, AlignLeft, AlertCircle } from "lucide-react";
+import { Plus, Loader2, Trash2, Edit2, Calendar, Clock, CheckCircle, Circle, Eye, CheckSquare, X, ListTodo, AlignLeft, AlertCircle, Tag, Bot, Coffee, Flower2, PlusCircle, MinusCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import confetti from "canvas-confetti";
+import toast from "react-hot-toast";
 
 const TaskDashboardPage = () => {
   const { authUser } = useAuthStore();
@@ -17,11 +18,29 @@ const TaskDashboardPage = () => {
     description: "",
     status: "todo",
     priority: "medium",
+    category: "other",
     dueDate: "",
+    subTasks: [],
   });
 
   useEffect(() => {
     fetchTasks();
+    
+    // Gimmick: AI Smart Suggestion Toast
+    const timer = setTimeout(() => {
+      toast("🤖 AI วิเคราะห์: คุณมักจะทำงานลำดับความสำคัญสูงเสร็จเร็วขึ้นในตอนเช้า! ☕ ลองจัดตารางงาน 'ด่วน' ในวันพรุ่งนี้เลยไหม?", {
+        duration: 7000,
+        position: 'bottom-right',
+        style: {
+          background: '#fdf4ff',
+          color: '#701a75',
+          border: '1px solid #fbcfe8',
+          padding: '16px',
+        },
+      });
+    }, 5000); // 5 seconds after page loads
+    
+    return () => clearTimeout(timer);
   }, [fetchTasks]);
 
   const handleOpenModal = (task = null) => {
@@ -32,7 +51,9 @@ const TaskDashboardPage = () => {
         description: task.description || "",
         status: task.status,
         priority: task.priority,
+        category: task.category || "other",
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "",
+        subTasks: task.subTasks || [],
       });
     } else {
       setEditingTask(null);
@@ -41,7 +62,9 @@ const TaskDashboardPage = () => {
         description: "",
         status: "todo",
         priority: "medium",
+        category: "other",
         dueDate: "",
+        subTasks: [],
       });
     }
     setIsModalOpen(true);
@@ -52,12 +75,40 @@ const TaskDashboardPage = () => {
     setEditingTask(null);
   };
 
+  const addSubTask = () => {
+    setFormData({
+      ...formData,
+      subTasks: [...formData.subTasks, { title: "", isCompleted: false }]
+    });
+  };
+
+  const removeSubTask = (index) => {
+    const newSubTasks = [...formData.subTasks];
+    newSubTasks.splice(index, 1);
+    setFormData({ ...formData, subTasks: newSubTasks });
+  };
+
+  const handleSubTaskChange = (index, value) => {
+    const newSubTasks = [...formData.subTasks];
+    newSubTasks[index].title = value;
+    setFormData({ ...formData, subTasks: newSubTasks });
+  };
+
+  const toggleSubTask = (task, subTaskIndex) => {
+    const newSubTasks = [...task.subTasks];
+    newSubTasks[subTaskIndex].isCompleted = !newSubTasks[subTaskIndex].isCompleted;
+    updateTask(task._id, { subTasks: newSubTasks });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     let success = false;
     
+    // Filter out empty subtasks
+    const finalSubTasks = formData.subTasks.filter(st => st.title.trim() !== "");
+    
     // Format date properly if exists
-    const submitData = { ...formData };
+    const submitData = { ...formData, subTasks: finalSubTasks };
     if (!submitData.dueDate) delete submitData.dueDate;
 
     if (editingTask) {
@@ -87,10 +138,19 @@ const TaskDashboardPage = () => {
 
   const getPriorityInfo = (priority) => {
     switch (priority) {
-      case "high": return { label: "สูง", style: "text-rose-600 bg-rose-100 border-rose-200", borderClass: "border-l-rose-500" };
+      case "high": return { label: "ด่วน 🔥", style: "text-rose-600 bg-rose-100 border-rose-200", borderClass: "border-l-rose-500" };
       case "medium": return { label: "ปานกลาง", style: "text-amber-600 bg-amber-100 border-amber-200", borderClass: "border-l-amber-400" };
-      case "low": return { label: "ต่ำ", style: "text-emerald-600 bg-emerald-100 border-emerald-200", borderClass: "border-l-emerald-400" };
+      case "low": return { label: "ต่ำ 🌱", style: "text-emerald-600 bg-emerald-100 border-emerald-200", borderClass: "border-l-emerald-400" };
       default: return { label: priority, style: "text-slate-600 bg-slate-100", borderClass: "border-l-slate-300" };
+    }
+  };
+  
+  const getCategoryInfo = (cat) => {
+    switch (cat) {
+      case "work": return { label: "ทำงาน 💼", style: "bg-blue-50 text-blue-600" };
+      case "personal": return { label: "ส่วนตัว 🏠", style: "bg-purple-50 text-purple-600" };
+      case "study": return { label: "เรียน 📚", style: "bg-orange-50 text-orange-600" };
+      default: return { label: "ทั่วไป 🌱", style: "bg-slate-50 text-slate-600" };
     }
   };
   
@@ -107,9 +167,11 @@ const TaskDashboardPage = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-10 flex justify-between items-center border-b border-slate-200 pb-8">
         <div>
-          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight">แดชบอร์ดงานของฉัน</h1>
-          <p className="text-slate-500 mt-2 text-lg">
-            ยินดีต้อนรับกลับมา, <span className="font-semibold text-primary-600">{authUser?.name || authUser?.fullname}</span> 👋
+          <h1 className="text-4xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
+            <Bot className="size-10 text-primary-500" /> แดชบอร์ดงานของฉัน 
+          </h1>
+          <p className="text-slate-500 mt-2 text-lg flex items-center gap-2">
+            ยินดีต้อนรับกลับมา, <span className="font-semibold text-primary-600 underline decoration-primary-200 decoration-2 underline-offset-4">{authUser?.name || authUser?.fullname}</span> ☕ 🌱
           </p>
         </div>
         <button 
@@ -127,10 +189,16 @@ const TaskDashboardPage = () => {
         </div>
       ) : tasks.length === 0 ? (
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-16 text-center transform transition-all hover:shadow-md">
-          <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-24 h-24 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-6 relative">
             <CheckSquare className="size-12 text-primary-400" />
+            <div className="absolute -top-2 -right-2 transform rotate-12">
+              <Coffee className="size-8 text-amber-400 opacity-60" />
+            </div>
+            <div className="absolute -bottom-2 -left-2 transform -rotate-12">
+              <Flower2 className="size-8 text-emerald-400 opacity-60" />
+            </div>
           </div>
-          <h3 className="text-2xl font-bold text-slate-800">ยังไม่มีงานเลย</h3>
+          <h3 className="text-2xl font-bold text-slate-800">ยังไม่มีงานเลย 🌱 ☕</h3>
           <p className="text-slate-500 mt-2 mb-8 text-lg">สร้างงานชิ้นแรกของคุณเพื่อเริ่มต้นจัดการชีวิตให้ง่ายขึ้น</p>
           <button 
             onClick={() => handleOpenModal()}
@@ -140,11 +208,13 @@ const TaskDashboardPage = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {tasks.map((task) => (
-            <div key={task._id} className={`bg-white rounded-3xl shadow-sm border border-slate-200 border-l-[6px] ${getPriorityInfo(task.priority).borderClass} p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col relative overflow-hidden`}>
+            <div key={task._id} className={`bg-white/80 backdrop-blur-md rounded-3xl shadow-sm border border-slate-200/50 border-l-[8px] ${getPriorityInfo(task.priority).borderClass} p-7 hover:shadow-2xl hover:shadow-primary-500/10 hover:-translate-y-1.5 transition-all duration-500 group flex flex-col relative overflow-hidden`}>
+              {/* Subtle background glow on hover */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-primary-50/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
-              <div className="flex justify-between items-start mb-5 relative z-20">
+              <div className="flex justify-between items-start mb-6 relative z-20">
                 <button 
                   onClick={() => toggleStatus(task)}
                   className="mt-1 flex-shrink-0 focus:outline-none transform hover:scale-110 transition-transform"
@@ -168,9 +238,12 @@ const TaskDashboardPage = () => {
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${getPriorityInfo(task.priority).style}`}>
                       {getPriorityInfo(task.priority).label}
                     </span>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border border-transparent ${getCategoryInfo(task.category || 'other').style}`}>
+                      {getCategoryInfo(task.category || 'other').label}
+                    </span>
                     {task.status === "in-progress" && (
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200">
-                          {getStatusLabel(task.status)}
+                           ⚙️ {getStatusLabel(task.status)}
                         </span>
                     )}
                   </div>
@@ -181,6 +254,37 @@ const TaskDashboardPage = () => {
                   <p className="text-slate-500 text-sm line-clamp-2 mb-4">
                       {task.description}
                   </p>
+              )}
+
+              {/* Sub-tasks Progress */}
+              {task.subTasks && task.subTasks.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-1.5">
+                    <span>งานย่อย ({task.subTasks.filter(st => st.isCompleted).length}/{task.subTasks.length})</span>
+                    <span>{Math.round((task.subTasks.filter(st => st.isCompleted).length / task.subTasks.length) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-400 transition-all duration-500" 
+                      style={{ width: `${(task.subTasks.filter(st => st.isCompleted).length / task.subTasks.length) * 100}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {task.subTasks.slice(0, 3).map((st, idx) => (
+                      <div key={idx} className="flex items-center gap-2 group/st cursor-pointer" onClick={() => toggleSubTask(task, idx)}>
+                        {st.isCompleted ? (
+                          <CheckCircle className="size-3 text-emerald-400" />
+                        ) : (
+                          <Circle className="size-3 text-slate-300 group-hover/st:text-primary-400" />
+                        )}
+                        <span className={`text-xs truncate ${st.isCompleted ? 'text-slate-300 line-through' : 'text-slate-500'}`}>{st.title}</span>
+                      </div>
+                    ))}
+                    {task.subTasks.length > 3 && (
+                      <p className="text-[10px] text-slate-400 italic mt-1">+ อีก {task.subTasks.length - 3} รายการ</p>
+                    )}
+                  </div>
+                </div>
               )}
               
               <div className="mt-auto pt-5 flex items-center justify-between text-sm text-slate-500 border-t border-slate-100">
@@ -302,23 +406,81 @@ const TaskDashboardPage = () => {
                     onChange={(e) => setFormData({...formData, priority: e.target.value})}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-slate-700 font-medium font-sans cursor-pointer appearance-none"
                   >
-                    <option value="low">ต่ำ</option>
+                    <option value="low">ต่ำ 🌱</option>
                     <option value="medium">ปานกลาง</option>
-                    <option value="high">สูง</option>
+                    <option value="high">ด่วน 🔥</option>
                   </select>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                  <Calendar className="size-4 text-slate-400" /> วันที่กำหนดส่ง (ไม่บังคับ)
-                </label>
-                <input 
-                  type="datetime-local" 
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-slate-700 font-medium cursor-text"
-                />
+              <div className="grid grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <Tag className="size-4 text-slate-400" /> หมวดหมู่ (Category)
+                  </label>
+                  <select 
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-slate-700 font-medium font-sans cursor-pointer appearance-none"
+                  >
+                    <option value="other">ทั่วไป 🌱</option>
+                    <option value="work">ทำงาน 💼</option>
+                    <option value="personal">ส่วนตัว 🏠</option>
+                    <option value="study">เรียน 📚</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <Calendar className="size-4 text-slate-400" /> วันที่กำหนดส่ง
+                  </label>
+                  <input 
+                    type="datetime-local" 
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-slate-700 font-medium cursor-text"
+                  />
+                </div>
+              </div>
+
+              {/* Sub-tasks Editor Section */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <ListTodo className="size-4 text-slate-400" /> งานย่อย (Sub-tasks)
+                  </label>
+                  <button 
+                    type="button" 
+                    onClick={addSubTask}
+                    className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 bg-primary-50 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    <PlusCircle className="size-3.5" /> เพิ่มรายการ
+                  </button>
+                </div>
+                
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {formData.subTasks.length === 0 ? (
+                    <p className="text-xs text-slate-400 italic py-2 text-center border border-dashed border-slate-200 rounded-xl">ไม่มีงานย่อย</p>
+                  ) : (
+                    formData.subTasks.map((st, index) => (
+                      <div key={index} className="flex gap-2 items-center animate-fade-in">
+                        <input 
+                          type="text"
+                          value={st.title}
+                          onChange={(e) => handleSubTaskChange(index, e.target.value)}
+                          placeholder={`งานย่อยที่ ${index + 1}...`}
+                          className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-primary-500/20 outline-none transition-all text-sm text-slate-700"
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => removeSubTask(index)}
+                          className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                        >
+                          <MinusCircle className="size-4" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
 
               <div className="pt-6 flex justify-end gap-3 border-t border-slate-100">
