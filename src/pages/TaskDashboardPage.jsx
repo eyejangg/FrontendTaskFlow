@@ -301,20 +301,20 @@ const TaskDashboardPage = () => {
                   )}
                 </div>
                 
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="flex gap-1.5 opacity-60 group-hover:opacity-100 transition-all duration-300">
                   <Link 
                     to={`/tasks/${task._id}`}
-                    className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors"
+                    className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-2xl transition-all"
                     title="รายละเอียด"
                   >
-                    <Eye className="size-4.5" />
+                    <Eye className="size-5" />
                   </Link>
                   <button 
                     onClick={() => handleOpenModal(task)}
-                    className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors"
+                    className="p-2.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-2xl transition-all"
                     title="แก้ไข"
                   >
-                    <Edit2 className="size-4.5" />
+                    <Edit2 className="size-5" />
                   </button>
                   <button 
                     onClick={() => {
@@ -322,10 +322,10 @@ const TaskDashboardPage = () => {
                             deleteTask(task._id);
                         }
                     }}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                    className="p-2.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
                     title="ลบงาน"
                   >
-                    <Trash2 className="size-4.5" />
+                    <Trash2 className="size-5" />
                   </button>
                 </div>
               </div>
